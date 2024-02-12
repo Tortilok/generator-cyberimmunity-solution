@@ -1,0 +1,59 @@
+version: '3.4'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.0
+    container_name: zookeeper
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    ports:
+     - "2181:2181"
+
+  broker:
+    image: confluentinc/cp-kafka:7.2.0
+    container_name: broker
+    ports:
+      - "9092:9092"
+    expose:
+     - "29092"
+    depends_on:
+      - zookeeper
+    env_file: ./modules/broker/config/.env
+
+  monitor:
+    build: ./modules/monitor
+    entrypoint: 
+      - bash 
+      - -c 
+      - |
+        echo 'Giving Kafka a bit of time to start up…'
+        sleep 60
+        venv/bin/python start.py /shared/config.ini
+    container_name: monitor
+    environment:
+      - MODULE_NAME=monitor
+    volumes:
+      - .{{name}}/shared:/shared
+  {% set port = namespace(a=6064) %} 
+  {% for item in tags %}
+  {{ item }}:
+    build: ./modules/{{ item }}
+    entrypoint:
+      - bash
+      - -c
+      - |
+        echo 'Giving Kafka a bit of time to start up…'
+        sleep 20
+        venv/bin/python start.py /shared/config.ini
+    container_name: {{ item }}
+    environment:
+      - MODULE_NAME={{ item }}
+      - MODULE_PORT={{ port.a }}
+    volumes:
+      - ./shared:/shared
+    ports:
+      - {{ port.a }}:{{ port.a }}
+    {% set port.a = port.a + 1 %}
+  {% endfor %}
+  

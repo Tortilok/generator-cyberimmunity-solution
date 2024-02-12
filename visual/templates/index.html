@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script>
+    function addModule(){
+        var clonElement = document.getElementById('module').cloneNode(true);
+        document.getElementById('module_table').appendChild(clonElement);
+    };
+
+    function view_select(){
+        if (document.getElementById("dst")) { 
+                    var obj = document.getElementById("dst");  
+                    if (obj.style.display != "block") { 
+                        dst_source();
+                        obj.style.display = "block"; //Показываем элемент
+                    }
+                    else obj.style.display = "none"; //Скрываем элемент
+                }
+    }
+
+    function dst_source(){
+        let obj = document.getElementById("dst");
+        let modules = document.querySelectorAll("#module");
+        for (let i = 0; i < modules.length; i++){
+            if (obj.options[0].text != modules[i].querySelector("#name").value){
+                obj.options[obj.options.length] = new Option(modules[i].querySelector("#name").value, modules[i].querySelector("#tag").value);
+            }
+        }
+        
+    }
+
+    
+
+    function grub_data(){
+        let data = {};
+        let names = [];
+        let tags = [];
+        let modules = document.querySelectorAll("#module");
+        for (let i = 0; i < modules.length; i++){
+            names.push(modules[i].querySelector("#name").value);
+            tags.push(modules[i].querySelector("#tag").value);
+        }
+        data.module = {};
+        data.module.name = names;
+        data.module.tag = tags;
+        data.name_solution = document.getElementById('name_solution').value;
+        return data
+    };
+
+    async function send_data(){
+        data = grub_data();
+        const response = await fetch("/get_module", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log(data.message);
+        }
+        else
+            console.log(response);
+
+    };
+
+    async function create_solution(){
+        data = grub_data();
+        const response = await fetch("/create_solution", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log(data.message);
+        }
+        else
+            console.log(response);
+
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<ul class="flex m-3 space-x-4">
+    <textarea id="name_solution" class="flex border-2 border-gray-400 rounded-md p-1 h-15 resize-x" type="text"></textarea>
+    <select>
+        <option selected disabled>Выберите режим генерации</option>
+        <option value="prototype">Прототип</option>
+    </select>
+    <select>
+        <option selected disabled>Выберите язык программирования</option>
+        <option value="python">Python</option>
+    </select>
+    <button class="bg-gray-100 hover:bg-gray-300 rounded-md" id="create" onclick="create_solution()">
+        <div class="p-1">Создать</div>
+    </button>
+    <button class="bg-gray-100 hover:bg-gray-300 rounded-md" id="save" onclick="send_data()">
+        <div class="p-1">Сохранить</div>
+    </button>
+</ul>
+<hr>
+<ul class="flex m-3 space-x-4">
+    <li class="p-1 pl-4">Название модуля:</li>
+    <li class="p-1 pl-12">Тег модуля:</li>
+    <li class="pl-10">
+        <button class="bg-gray-100 hover:bg-gray-300 rounded-md" id="add" onclick="addModule()">
+            <div class="p-1">Добавить модуль</div>
+        </button>
+    </li>
+</ul>
+<div id="module_table">
+    <div class="flex m-3 space-x-2" id="module">
+        <textarea id="name" class="flex border-2 border-gray-400 rounded-md p-1 h-15 resize-x" type="text"></textarea>
+        <textarea id="tag" class="flex border-2 border-gray-400 rounded-md p-1 h-15 resize-x" type="text"></textarea>
+        <button class="bg-gray-100 hover:bg-gray-300 rounded-md" id="settings" onclick="view_select()">
+            <div class="p-1">Показать настройки</div>
+        </button>
+        <select id="dst" multiple="multiple" class="hidden">
+            <option selected disabled>Исходящая связь</option>
+            <option value="python">Python</option>
+        </select>
+    </div>
+</div>
+{% endblock %}
